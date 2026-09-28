@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ketik — Typing Trainer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Apply the saved theme before first paint to avoid a flash.
+    try {
+      const t = localStorage.getItem('ketik:theme');
+      if (t) document.documentElement.dataset.theme = t;
+    } catch (_) {}
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <a class="brand" href="#" data-view="test" aria-label="Ketik home">
+        <span class="brand-mark" aria-hidden="true">k</span>ketik
+      </a>
+      <nav class="nav" aria-label="Main">
+        <button class="nav-btn is-active" data-view="test" type="button">Test</button>
+        <button class="nav-btn" data-view="stats" type="button">Stats</button>
+      </nav>
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="Toggle theme" title="Toggle theme">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+      </button>
+    </header>
+
+    <!-- ============ TEST VIEW ============ -->
+    <main id="view-test" class="view">
+      <div class="config" role="toolbar" aria-label="Test settings">
+        <div class="seg" data-group="mode">
+          <button type="button" data-value="time">time</button>
+          <button type="button" data-value="words">words</button>
+        </div>
+        <span class="config-sep" aria-hidden="true"></span>
+        <div class="seg" data-group="amount"></div>
+        <span class="config-sep" aria-hidden="true"></span>
+        <div class="seg" data-group="lang">
+          <button type="button" data-value="english">english</button>
+          <button type="button" data-value="indonesia">indonesia</button>
+        </div>
+        <span class="config-sep" aria-hidden="true"></span>
+        <div class="seg" data-group="focus">
+          <button type="button" data-value="weak" title="Pick words that use the keys you miss most">weak keys</button>
+        </div>
+      </div>
+
+      <section id="testArea" class="test-area">
+        <div class="live" aria-live="off">
+          <span id="liveProgress" class="live-progress">30</span>
+          <span id="liveWpm" class="live-wpm"></span>
+        </div>
+
+        <div id="wordsWrap" class="words-wrap" tabindex="-1">
+          <div id="words" class="words"></div>
+          <div id="caret" class="caret" aria-hidden="true"></div>
+          <div id="focusHint" class="focus-hint" hidden>click here or press any key to focus</div>
+        </div>
+
+        <input id="hiddenInput" class="hidden-input" type="text" autocomplete="off" autocapitalize="off"
+               autocorrect="off" spellcheck="false" aria-label="Type the words shown">
+
+        <p id="weakNote" class="weak-note" hidden></p>
+
+        <div class="test-actions">
+          <button id="restartBtn" class="ghost-btn" type="button" title="Restart (Tab)">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+            restart
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ RESULT ============ -->
+      <section id="resultArea" class="result" hidden>
+        <div class="result-top">
+          <div class="hero">
+            <div class="stat-label">wpm</div>
+            <div id="rWpm" class="hero-num">0</div>
+            <div id="rPb" class="pb-badge" hidden>new personal best</div>
+          </div>
+          <div class="hero">
+            <div class="stat-label">accuracy</div>
+            <div id="rAcc" class="hero-num">0%</div>
+          </div>
+          <div class="result-chart">
+            <div class="chart-head">
+              <span class="chart-title">Speed over the test</span>
+              <span class="legend">
+                <span class="legend-item"><i class="sw sw-wpm"></i>wpm</span>
+                <span class="legend-item"><i class="sw sw-raw"></i>raw</span>
+                <span class="legend-item"><i class="sw sw-err"></i>errors</span>
+              </span>
+            </div>
+            <div id="rChart" class="chart"></div>
+          </div>
+        </div>
+
+        <dl class="mini-stats">
+          <div><dt>test</dt><dd id="rType"></dd></div>
+          <div><dt>raw</dt><dd id="rRaw"></dd></div>
+          <div><dt>characters</dt><dd id="rChars" title="correct / incorrect / extra / missed"></dd></div>
+          <div><dt>consistency</dt><dd id="rCons"></dd></div>
+          <div><dt>time</dt><dd id="rTime"></dd></div>
+        </dl>
+
+        <div class="card">
+          <div class="chart-head">
+            <span class="chart-title">Missed keys this test</span>
+            <span class="heat-scale"><span>0%</span><i class="heat-bar"></i><span>20%+</span></span>
+          </div>
+          <div id="rKeyboard" class="keyboard"></div>
+        </div>
+
+        <div class="test-actions">
+          <button id="nextBtn" class="primary-btn" type="button">next test <kbd>Tab</kbd></button>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ STATS VIEW ============ -->
+    <main id="view-stats" class="view" hidden>
+      <div id="statsEmpty" class="empty" hidden>
+        <h2>No tests yet</h2>
+        <p>Finish a test and your history, personal bests and weak keys show up here.</p>
+        <button class="primary-btn" type="button" data-view="test">take a test</button>
+      </div>
+
+      <div id="statsBody">
+        <div class="tiles">
+          <div class="tile"><div class="stat-label">tests completed</div><div id="sCount" class="tile-num">0</div></div>
+          <div class="tile"><div class="stat-label">avg wpm · last 10</div><div id="sAvg" class="tile-num">0</div><div id="sAvgDelta" class="tile-sub"></div></div>
+          <div class="tile"><div class="stat-label">avg accuracy · last 10</div><div id="sAcc" class="tile-num">0%</div></div>
+          <div class="tile"><div class="stat-label">time typing</div><div id="sTime" class="tile-num">0m</div></div>
+        </div>
+
+        <div class="card">
+          <div class="chart-head">
+            <span class="chart-title">WPM per test</span>
+            <span class="legend">
+              <span class="legend-item"><i class="sw sw-wpm"></i>wpm</span>
+              <span class="legend-item"><i class="sw sw-avg"></i>rolling avg (10)</span>
+            </span>
+          </div>
+          <div id="sChart" class="chart chart-tall"></div>
+        </div>
+
+        <div class="card">
+          <div class="chart-head">
+            <span class="chart-title">Missed keys, all time</span>
+            <span class="heat-scale"><span>0%</span><i class="heat-bar"></i><span>20%+</span></span>
+          </div>
+          <div id="sKeyboard" class="keyboard"></div>
+          <p id="sWeakest" class="card-foot"></p>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="chart-head"><span class="chart-title">Personal bests</span></div>
+            <div class="table-wrap"><table class="table" id="pbTable"></table></div>
+          </div>
+          <div class="card">
+            <div class="chart-head">
+              <span class="chart-title">Recent tests</span>
+              <button id="clearBtn" class="link-btn" type="button">clear history</button>
+            </div>
+            <div class="table-wrap"><table class="table" id="historyTable"></table></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <span><kbd>Tab</kbd> restart</span>
+      <span><kbd>Esc</kbd> restart</span>
+      <span><kbd>Ctrl</kbd> + <kbd>Backspace</kbd> delete word</span>
+    </footer>
+  </div>
+
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+
+  <script src="words.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
